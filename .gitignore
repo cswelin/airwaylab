@@ -43,6 +43,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# self-hosted Supabase runtime data (Postgres data dir, uploaded files) —
+# never commit real database contents or user health data
+/volumes/db/data
+/volumes/storage
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
