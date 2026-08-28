@@ -17,6 +17,10 @@ const gitSha = (() => {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Standalone output for Docker: bundles only the traced production
+  // dependencies into .next/standalone instead of shipping full node_modules.
+  output: 'standalone',
+
   async redirects() {
     return [
       // Wave 1 duplicate-slug 301s (AIR-1609 task 3, wave 1)
