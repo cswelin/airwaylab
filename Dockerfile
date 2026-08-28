@@ -16,9 +16,16 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Standalone output needs no runtime env vars at build time — every var in
-# lib/env.ts is optional, so this image builds the same regardless of which
-# services are configured at deploy time.
+# Most of lib/env.ts is read at runtime (server-only, or via next.config.mjs's
+# `env` field) and doesn't need to exist at build time. NEXT_PUBLIC_* vars are
+# the exception — Next.js inlines them into the client bundle during `next
+# build`, so they must be passed as build args (see docker-compose.yml's
+# `build.args`), not just as container-runtime env vars, or client-side code
+# (e.g. the Supabase browser client) silently sees them as empty.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

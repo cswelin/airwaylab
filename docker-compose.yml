@@ -1,6 +1,14 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      # NEXT_PUBLIC_* vars are inlined into the client bundle at build time —
+      # passing them only via `environment:` below is too late. Whenever
+      # SUPABASE_PUBLIC_URL or ANON_KEY change in .env, rebuild with
+      # `docker compose up -d --build` (a plain restart won't pick it up).
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
     restart: unless-stopped
     ports:
       - '${HOST_PORT:-3000}:3000'
