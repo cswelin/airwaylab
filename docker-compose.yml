@@ -271,6 +271,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - ./supabase/migrations:/migrations:ro
+      - ./supabase/baseline.sql:/baseline/baseline.sql:ro
+      - ./supabase/baseline.grants.sql:/baseline/baseline.grants.sql:ro
+      - ./supabase/baseline.cut:/baseline/baseline.cut:ro
       - ./scripts/supabase/migrate.sh:/migrate.sh:ro
     entrypoint: ['sh', '/migrate.sh']
 
