@@ -15,6 +15,19 @@ const gitSha = (() => {
   }
 })();
 
+// Self-hosted Supabase lives at whatever origin NEXT_PUBLIC_SUPABASE_URL
+// points to (e.g. http://10.0.1.41:8000), not *.supabase.co — add it to the
+// CSP connect-src alongside the Cloud pattern so both work.
+const supabaseOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : null;
+  } catch {
+    return null;
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output for Docker: bundles only the traced production
@@ -97,7 +110,10 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://checkout.stripe.com https://api.stripe.com https://*.ingest.de.sentry.io https://eu.i.posthog.com https://eu-assets.i.posthog.com",
+              [
+                "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://checkout.stripe.com https://api.stripe.com https://*.ingest.de.sentry.io https://eu.i.posthog.com https://eu-assets.i.posthog.com",
+                supabaseOrigin,
+              ].filter(Boolean).join(' '),
               "frame-src https://checkout.stripe.com https://js.stripe.com",
               "worker-src 'self' blob:",
             ].join('; '),
