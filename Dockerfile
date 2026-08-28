@@ -1,16 +1,14 @@
 # syntax=docker/dockerfile:1
 
 FROM node:20-alpine AS base
-# package-lock.json was generated with npm 11; node:20-alpine ships npm 10,
-# which resolves this lockfile's peer-dependency tree differently and makes
-# `npm ci` report packages (webpack + friends, pulled in as a peer dep of
-# @sentry/webpack-plugin) as missing. Pin npm to match.
-RUN npm install -g npm@11.17.0
 
 # ---- Dependencies -----------------------------------------------------
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+# .npmrc carries legacy-peer-deps=true, required for npm ci to resolve
+# @sentry/webpack-plugin's webpack peer dependency the same way it does
+# outside Docker.
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 
 # ---- Build --------------------------------------------------------------
