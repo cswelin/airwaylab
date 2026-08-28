@@ -18,14 +18,19 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Most of lib/env.ts is read at runtime (server-only, or via next.config.mjs's
 # `env` field) and doesn't need to exist at build time. NEXT_PUBLIC_* vars are
-# the exception — Next.js inlines them into the client bundle during `next
-# build`, so they must be passed as build args (see docker-compose.yml's
-# `build.args`), not just as container-runtime env vars, or client-side code
-# (e.g. the Supabase browser client) silently sees them as empty.
+# the exception — Next.js inlines them at build time into EVERY bundle it
+# produces, server routes included (not just client code), so they must be
+# passed as build args (see docker-compose.yml's `build.args`), not just as
+# container-runtime env vars. Left empty, code reading them silently sees ''
+# instead of erroring — e.g. lib/csrf.ts's validateOrigin() falls back to
+# allowing only localhost/127.0.0.1 origins when NEXT_PUBLIC_APP_URL is
+# empty, 403-ing every real request once accessed via a real host/IP.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
