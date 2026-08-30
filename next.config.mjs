@@ -34,6 +34,10 @@ const nextConfig = {
   // dependencies into .next/standalone instead of shipping full node_modules.
   output: 'standalone',
 
+  // Dev server is reached from the self-hosted box's LAN-facing address, not
+  // just localhost — allow it so HMR requests aren't blocked as cross-origin.
+  allowedDevOrigins: ['127.0.1.1'],
+
   async redirects() {
     return [
       // Wave 1 duplicate-slug 301s (AIR-1609 task 3, wave 1)
