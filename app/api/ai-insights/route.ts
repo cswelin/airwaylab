@@ -901,7 +901,7 @@ export async function POST(request: NextRequest) {
       const isBillingError = err.message?.includes('credit balance');
       Sentry.captureException(err, {
         tags: { route: 'ai-insights', error_type: isBillingError ? 'billing' : 'bad_request' },
-        extra: { anthropicStatus: err.status },
+        extra: { anthropicStatus: err.status, anthropicMessage: err.message },
         level: isBillingError ? 'fatal' : 'error',
       });
       if (isBillingError) {
@@ -912,7 +912,7 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         );
       }
-      console.error('[ai-insights] Bad request');
+      console.error('[ai-insights] Bad request:', err.message);
       return NextResponse.json(
         { error: 'Failed to process analysis data. Please try again.' },
         { status: 502 }
