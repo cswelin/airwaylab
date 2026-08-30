@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useSyncedViewport } from '@/hooks/use-synced-viewport';
 import { ZOOM_PRESETS, PAN_STEP_FRACTION } from '@/hooks/use-chart-viewport';
 import { formatElapsedTimeShort } from '@/lib/waveform-utils';
-import { ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight, Expand, Shrink } from 'lucide-react';
 
 interface Props {
   durationSeconds: number;
   disabled?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 function getActivePreset(visibleDuration: number): string | null {
@@ -24,7 +26,7 @@ function getActivePreset(visibleDuration: number): string | null {
   return best?.label ?? null;
 }
 
-export function SharedChartToolbar({ durationSeconds, disabled = false }: Props) {
+export function SharedChartToolbar({ durationSeconds, disabled = false, isExpanded = false, onToggleExpand }: Props) {
   const viewport = useSyncedViewport();
 
   const visibleStart = viewport.clampedStartSec;
@@ -112,15 +114,26 @@ export function SharedChartToolbar({ durationSeconds, disabled = false }: Props)
             <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
-        <div className="text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
           <span>
             {formatElapsedTimeShort(visibleStart)}
             {' – '}
             {formatElapsedTimeShort(visibleEnd)}
           </span>
-          <span className="ml-2 text-muted-foreground/80">
+          <span className="text-muted-foreground/80">
             {formatElapsedTimeShort(visibleDuration)} of {formatElapsedTimeShort(durationSeconds)}
           </span>
+          {onToggleExpand && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onToggleExpand}
+              className="text-muted-foreground"
+              aria-label={isExpanded ? 'Exit full screen' : 'Expand charts to full screen'}
+            >
+              {isExpanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
+            </Button>
+          )}
         </div>
       </div>
 

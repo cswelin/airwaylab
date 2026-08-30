@@ -12,7 +12,10 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
+import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import type { NightResult } from '@/lib/types';
 import { sanitizeNumber } from '@/lib/chart-downsample';
 
@@ -35,6 +38,7 @@ export const MachineMetricsChart = memo(function MachineMetricsChart({ nights, t
     leak95: true,
     maskPress95: true,
   });
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const data = useMemo(() => [...nights]
     .reverse()
@@ -82,12 +86,84 @@ export const MachineMetricsChart = memo(function MachineMetricsChart({ nights, t
 
   const nightLabel = nights.length >= 28 ? `${nights.length}-Night History` : 'Machine Metrics Over Time';
 
+  const renderChart = (heightClass: string) => (
+    <div
+      className={`relative w-full ${heightClass}`}
+      role="img"
+      aria-label={`Machine metrics trend chart showing ${data.length} nights. Metrics: ${METRICS.filter((m) => visible[m.key]).map((m) => m.label).join(', ')}.`}
+    >
+      <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
+        airwaylab.app
+      </span>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="hsl(217 33% 15% / 0.3)"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="date"
+            tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
+            axisLine={{ stroke: 'hsl(217 33% 15%)' }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+            width={35}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'hsl(217 33% 8%)',
+              border: '1px solid hsl(217 33% 15%)',
+              borderRadius: '0.5rem',
+              fontSize: 12,
+              color: 'hsl(210 40% 93%)',
+            }}
+            labelFormatter={(label) => dateToFullDate.get(label as string) ?? label}
+          />
+          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+          {therapyChangeDateShort && (
+            <ReferenceLine
+              x={therapyChangeDateShort}
+              stroke="hsl(38 92% 50%)"
+              strokeDasharray="4 4"
+              strokeWidth={1}
+              label={{
+                value: 'Settings Change',
+                fill: 'hsl(38 92% 50%)',
+                fontSize: 10,
+                position: 'top',
+              }}
+            />
+          )}
+          {METRICS.map((m) => (
+            <Line
+              key={m.key}
+              type="monotone"
+              dataKey={m.key}
+              name={m.label}
+              stroke={m.color}
+              strokeWidth={visible[m.key] ? 2 : 0}
+              dot={visible[m.key] ? { r: 3, fill: m.color } : false}
+              activeDot={visible[m.key] ? { r: 5 } : false}
+              hide={!visible[m.key]}
+              connectNulls
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-sm font-medium">{nightLabel}</CardTitle>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             {METRICS.map((m) => (
               <button
                 key={m.key}
@@ -108,80 +184,26 @@ export const MachineMetricsChart = memo(function MachineMetricsChart({ nights, t
                 <span className="text-muted-foreground/60">{m.unit}</span>
               </button>
             ))}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsExpanded(true)}
+              aria-label="Expand chart to full screen"
+              className="text-muted-foreground"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div
-          className="relative h-[300px] w-full sm:h-[380px]"
-          role="img"
-          aria-label={`Machine metrics trend chart showing ${data.length} nights. Metrics: ${METRICS.filter((m) => visible[m.key]).map((m) => m.label).join(', ')}.`}
-        >
-          <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
-            airwaylab.app
-          </span>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(217 33% 15% / 0.3)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="date"
-                tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
-                axisLine={{ stroke: 'hsl(217 33% 15%)' }}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-                width={35}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(217 33% 8%)',
-                  border: '1px solid hsl(217 33% 15%)',
-                  borderRadius: '0.5rem',
-                  fontSize: 12,
-                  color: 'hsl(210 40% 93%)',
-                }}
-                labelFormatter={(label) => dateToFullDate.get(label as string) ?? label}
-              />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              {therapyChangeDateShort && (
-                <ReferenceLine
-                  x={therapyChangeDateShort}
-                  stroke="hsl(38 92% 50%)"
-                  strokeDasharray="4 4"
-                  strokeWidth={1}
-                  label={{
-                    value: 'Settings Change',
-                    fill: 'hsl(38 92% 50%)',
-                    fontSize: 10,
-                    position: 'top',
-                  }}
-                />
-              )}
-              {METRICS.map((m) => (
-                <Line
-                  key={m.key}
-                  type="monotone"
-                  dataKey={m.key}
-                  name={m.label}
-                  stroke={m.color}
-                  strokeWidth={visible[m.key] ? 2 : 0}
-                  dot={visible[m.key] ? { r: 3, fill: m.color } : false}
-                  activeDot={visible[m.key] ? { r: 5 } : false}
-                  hide={!visible[m.key]}
-                  connectNulls
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {renderChart('h-[300px] sm:h-[380px]')}
       </CardContent>
+      {isExpanded && (
+        <FullscreenChartModal title={nightLabel} onClose={() => setIsExpanded(false)}>
+          {renderChart('h-full min-h-[70vh]')}
+        </FullscreenChartModal>
+      )}
     </Card>
   );
 });

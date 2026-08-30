@@ -1,7 +1,10 @@
 'use client';
 
 import { memo, useCallback, useMemo, useState } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import {
   Tooltip,
   TooltipContent,
@@ -153,6 +156,7 @@ export const NightHeatmap = memo(function NightHeatmap({ nights, therapyChangeDa
     direction: 'desc',
   });
   const [showSparklines, setShowSparklines] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Toggle a metric's visibility
   const toggleMetric = useCallback((key: string) => {
@@ -218,6 +222,104 @@ export const NightHeatmap = memo(function NightHeatmap({ nights, therapyChangeDa
     );
   };
 
+  const renderTable = () => (
+    <TooltipProvider>
+      <div
+        className="relative max-w-full overflow-x-auto"
+        role="region"
+        aria-label="Night-by-night heatmap of sleep metrics"
+      >
+        <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
+          airwaylab.app
+        </span>
+        <table
+          className="w-full text-xs"
+          aria-label={`Sleep metrics heatmap for ${sortedNights.length} nights. Color indicates severity: green is normal, amber is borderline, red is elevated.`}
+        >
+          <thead>
+            <tr className="border-b border-border/50 text-muted-foreground">
+              <th
+                className="cursor-pointer pb-2 pr-3 text-left font-medium hover:text-foreground"
+                onClick={() => handleSort('date')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('date'); } }}
+                role="button"
+                tabIndex={0}
+                title="Sort by date"
+              >
+                Date {sortArrow('date')}
+              </th>
+              {sortedNights.map((n) => (
+                <th
+                  key={n.dateStr}
+                  className={`pb-2 px-1 text-center font-mono ${
+                    n.dateStr === therapyChangeDate ? 'text-amber-500' : ''
+                  }`}
+                >
+                  {n.dateStr === therapyChangeDate ? (
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help underline decoration-amber-500/40 decoration-dotted underline-offset-2">
+                        {n.dateStr.slice(5)}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Therapy settings changed on this date
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    n.dateStr.slice(5)
+                  )}
+                </th>
+              ))}
+              {showSparklines && (
+                <th className="pb-2 px-2 text-center font-medium">Trend</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {activeMetrics.map((m) => (
+              <tr key={m.key} className="border-b border-border/30">
+                <td
+                  className="cursor-pointer py-1.5 pr-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => handleSort('metric', m.key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('metric', m.key); } }}
+                  role="button"
+                  tabIndex={0}
+                  title={`Sort by ${m.label}`}
+                >
+                  {m.label}
+                  {sortArrow('metric', m.key)}
+                </td>
+                {sortedNights.map((n) => {
+                  const val = m.get(n);
+                  const color = getColor(val, m.thresholds);
+                  return (
+                    <td key={n.dateStr} className="px-1 py-1">
+                      <Tooltip>
+                        <TooltipTrigger
+                          className={`block w-full rounded px-1.5 py-0.5 text-center font-mono tabular-nums ${color}`}
+                        >
+                          {val.toFixed(1)}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {m.label}: {val.toFixed(2)}
+                          {m.unit} on {n.dateStr}
+                        </TooltipContent>
+                      </Tooltip>
+                    </td>
+                  );
+                })}
+                {showSparklines && (
+                  <td className="px-2 py-1 text-center">
+                    <MiniSparkline values={sortedNights.map((n) => m.get(n))} />
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </TooltipProvider>
+  );
+
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-3">
@@ -250,106 +352,26 @@ export const NightHeatmap = memo(function NightHeatmap({ nights, therapyChangeDa
             >
               Sparklines
             </button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsExpanded(true)}
+              aria-label="Expand heatmap to full screen"
+              className="text-muted-foreground"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <TooltipProvider>
-          <div
-            className="relative max-w-full overflow-x-auto"
-            role="region"
-            aria-label="Night-by-night heatmap of sleep metrics"
-          >
-            <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
-              airwaylab.app
-            </span>
-            <table
-              className="w-full text-xs"
-              aria-label={`Sleep metrics heatmap for ${sortedNights.length} nights. Color indicates severity: green is normal, amber is borderline, red is elevated.`}
-            >
-              <thead>
-                <tr className="border-b border-border/50 text-muted-foreground">
-                  <th
-                    className="cursor-pointer pb-2 pr-3 text-left font-medium hover:text-foreground"
-                    onClick={() => handleSort('date')}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('date'); } }}
-                    role="button"
-                    tabIndex={0}
-                    title="Sort by date"
-                  >
-                    Date {sortArrow('date')}
-                  </th>
-                  {sortedNights.map((n) => (
-                    <th
-                      key={n.dateStr}
-                      className={`pb-2 px-1 text-center font-mono ${
-                        n.dateStr === therapyChangeDate ? 'text-amber-500' : ''
-                      }`}
-                    >
-                      {n.dateStr === therapyChangeDate ? (
-                        <Tooltip>
-                          <TooltipTrigger className="cursor-help underline decoration-amber-500/40 decoration-dotted underline-offset-2">
-                            {n.dateStr.slice(5)}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Therapy settings changed on this date
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        n.dateStr.slice(5)
-                      )}
-                    </th>
-                  ))}
-                  {showSparklines && (
-                    <th className="pb-2 px-2 text-center font-medium">Trend</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {activeMetrics.map((m) => (
-                  <tr key={m.key} className="border-b border-border/30">
-                    <td
-                      className="cursor-pointer py-1.5 pr-3 text-muted-foreground hover:text-foreground"
-                      onClick={() => handleSort('metric', m.key)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort('metric', m.key); } }}
-                      role="button"
-                      tabIndex={0}
-                      title={`Sort by ${m.label}`}
-                    >
-                      {m.label}
-                      {sortArrow('metric', m.key)}
-                    </td>
-                    {sortedNights.map((n) => {
-                      const val = m.get(n);
-                      const color = getColor(val, m.thresholds);
-                      return (
-                        <td key={n.dateStr} className="px-1 py-1">
-                          <Tooltip>
-                            <TooltipTrigger
-                              className={`block w-full rounded px-1.5 py-0.5 text-center font-mono tabular-nums ${color}`}
-                            >
-                              {val.toFixed(1)}
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {m.label}: {val.toFixed(2)}
-                              {m.unit} on {n.dateStr}
-                            </TooltipContent>
-                          </Tooltip>
-                        </td>
-                      );
-                    })}
-                    {showSparklines && (
-                      <td className="px-2 py-1 text-center">
-                        <MiniSparkline values={sortedNights.map((n) => m.get(n))} />
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </TooltipProvider>
+        {renderTable()}
       </CardContent>
+      {isExpanded && (
+        <FullscreenChartModal title="Night-by-Night Heatmap" onClose={() => setIsExpanded(false)}>
+          {renderTable()}
+        </FullscreenChartModal>
+      )}
     </Card>
   );
 });
