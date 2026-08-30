@@ -651,11 +651,17 @@ export async function POST(request: NextRequest) {
       systemPrompt += PREMIUM_INSIGHT_EXTENSION;
     }
 
+    // Identity-linked API keys (as opposed to workspace-scoped keys) require
+    // the workspace to act in to be sent explicitly, or Anthropic returns a
+    // BadRequestError. Workspace-scoped keys don't need this — leave it unset.
+    const anthropicWorkspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+
     const client = new Anthropic({
       apiKey: anthropicKey,
       maxRetries: 0,    // No retries — a timeout retry burns another 50s and is killed by
                         // Vercel's 60s maxDuration before completing (AIR-691)
       timeout: 50_000,  // 50s SDK timeout — leaves 10s headroom under maxDuration
+      ...(anthropicWorkspaceId ? { defaultHeaders: { 'anthropic-workspace-id': anthropicWorkspaceId } } : {}),
     });
 
     // Premium users get Sonnet for higher quality analysis; community gets Haiku
