@@ -13,6 +13,7 @@ import { TidalVolumeChart } from '@/components/charts/tidal-volume-chart';
 import { RespiratoryRateChart } from '@/components/charts/respiratory-rate-chart';
 import { SharedChartToolbar } from '@/components/charts/shared-chart-toolbar';
 import { ChartInteractionHint } from '@/components/charts/chart-interaction-hint';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import { SyncedViewportProvider, useSyncedViewport } from '@/hooks/use-synced-viewport';
 import { useWaveform } from '@/hooks/use-waveform';
 import { ErrorBoundary } from '@/components/common/error-boundary';
@@ -82,6 +83,7 @@ function WaveformCharts({
 }) {
   const viewport = useSyncedViewport();
   const oxTrace = selectedNight.oximetryTrace ?? null;
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Decimate flow data based on viewport zoom level
   const flowData = useMemo(() => {
@@ -113,7 +115,7 @@ function WaveformCharts({
   const hasTidalVolume = storedWaveform.tidalVolume.length > 0;
   const hasRespRate = storedWaveform.respiratoryRate.length > 0;
 
-  return (
+  const content = (
     <div className="flex flex-col gap-3">
       {/* Cloud badge */}
       {isFromCloud && (
@@ -124,7 +126,11 @@ function WaveformCharts({
       )}
 
       {/* Shared toolbar + minimap */}
-      <SharedChartToolbar durationSeconds={storedWaveform.durationSeconds} />
+      <SharedChartToolbar
+        durationSeconds={storedWaveform.durationSeconds}
+        isExpanded={isExpanded}
+        onToggleExpand={() => setIsExpanded((e) => !e)}
+      />
 
       {/* First-use interaction hint */}
       <ChartInteractionHint />
@@ -238,6 +244,12 @@ function WaveformCharts({
       </p>
     </div>
   );
+
+  return isExpanded ? (
+    <FullscreenChartModal title="Flow Waveform Analysis" onClose={() => setIsExpanded(false)}>
+      {content}
+    </FullscreenChartModal>
+  ) : content;
 }
 
 export function GraphsTab({

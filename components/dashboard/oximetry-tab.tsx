@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/common/metric-card';
 import { MetricDetailModal } from '@/components/dashboard/metric-detail-modal';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import { useThresholds } from '@/components/common/thresholds-provider';
 import type { NightResult } from '@/lib/types';
 import type { ThresholdDef } from '@/lib/thresholds';
@@ -26,6 +29,7 @@ export function OximetryTab({ selectedNight, previousNight, nights = [], onUploa
   const pOx = previousNight?.oximetry;
   const [showODIEvents, setShowODIEvents] = useState(true);
   const [showHR, setShowHR] = useState(true);
+  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
 
   const [detailMetric, setDetailMetric] = useState<{
     label: string;
@@ -82,6 +86,54 @@ export function OximetryTab({ selectedNight, previousNight, nights = [], onUploa
 
   const trace = selectedNight.oximetryTrace;
 
+  const traceContent = trace && (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/70">SpO₂</span>
+        <button
+          onClick={() => setShowODIEvents(!showODIEvents)}
+          aria-pressed={showODIEvents}
+          aria-label={`ODI-3 events: ${showODIEvents ? 'visible' : 'hidden'}`}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+            showODIEvents
+              ? 'border-border bg-card text-foreground'
+              : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
+          }`}
+        >
+          <div
+            className={`h-2 w-2 rounded-full ${showODIEvents ? 'bg-red-500' : 'bg-muted-foreground/40'}`}
+          />
+          ODI-3
+        </button>
+        <button
+          onClick={() => setShowHR(!showHR)}
+          aria-pressed={showHR}
+          aria-label={`Heart Rate: ${showHR ? 'visible' : 'hidden'}`}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+            showHR
+              ? 'border-border bg-card text-foreground'
+              : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
+          }`}
+        >
+          <div
+            className={`h-2 w-2 rounded-full ${showHR ? 'bg-red-500' : 'bg-muted-foreground/40'}`}
+          />
+          Heart Rate
+        </button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setIsTraceExpanded((e) => !e)}
+          aria-label={isTraceExpanded ? 'Exit full screen' : 'Expand chart to full screen'}
+          className="ml-auto text-muted-foreground"
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <SpO2Trace trace={trace} showHR={showHR} showODIEvents={showODIEvents} />
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       {/* SpO2 / HR Trace Chart */}
@@ -90,40 +142,16 @@ export function OximetryTab({ selectedNight, previousNight, nights = [], onUploa
           durationSeconds={trace.durationSeconds}
           dateStr={selectedNight.dateStr}
         >
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/70">SpO₂</span>
-            <button
-              onClick={() => setShowODIEvents(!showODIEvents)}
-              aria-pressed={showODIEvents}
-              aria-label={`ODI-3 events: ${showODIEvents ? 'visible' : 'hidden'}`}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                showODIEvents
-                  ? 'border-border bg-card text-foreground'
-                  : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
-              }`}
+          {isTraceExpanded ? (
+            <FullscreenChartModal
+              title="SpO₂ & Heart Rate Trace"
+              onClose={() => setIsTraceExpanded(false)}
             >
-              <div
-                className={`h-2 w-2 rounded-full ${showODIEvents ? 'bg-red-500' : 'bg-muted-foreground/40'}`}
-              />
-              ODI-3
-            </button>
-            <button
-              onClick={() => setShowHR(!showHR)}
-              aria-pressed={showHR}
-              aria-label={`Heart Rate: ${showHR ? 'visible' : 'hidden'}`}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                showHR
-                  ? 'border-border bg-card text-foreground'
-                  : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full ${showHR ? 'bg-red-500' : 'bg-muted-foreground/40'}`}
-              />
-              Heart Rate
-            </button>
-          </div>
-          <SpO2Trace trace={trace} showHR={showHR} showODIEvents={showODIEvents} />
+              {traceContent}
+            </FullscreenChartModal>
+          ) : (
+            traceContent
+          )}
         </SyncedViewportProvider>
       )}
 

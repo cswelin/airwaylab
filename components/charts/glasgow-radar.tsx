@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   Radar,
   RadarChart,
@@ -10,7 +10,10 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
+import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import type { GlasgowComponents } from '@/lib/types';
 import { CHART_COLORS, TOOLTIP_STYLE, withAlpha } from '@/lib/chart-theme';
 
@@ -33,6 +36,7 @@ const REFERENCE_VALUES: Record<string, number> = {
 };
 
 export const GlasgowRadar = memo(function GlasgowRadar({ glasgow }: Props) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const data = useMemo(() => [
     { component: 'Skew', value: glasgow.skew, ref: REFERENCE_VALUES['Skew'] },
     { component: 'Spike', value: glasgow.spike, ref: REFERENCE_VALUES['Spike'] },
@@ -58,78 +62,102 @@ export const GlasgowRadar = memo(function GlasgowRadar({ glasgow }: Props) {
     );
   }
 
+  const title = 'Glasgow Index Components';
+
+  const renderChart = (heightClass: string) => (
+    <>
+      <div
+        className={`relative w-full ${heightClass}`}
+        role="img"
+        aria-label={`Glasgow Index radar chart. Overall score: ${glasgow.overall.toFixed(2)} out of 9. Shows 9 component scores: ${data.map((d) => `${d.component}: ${d.value.toFixed(2)}`).join(', ')}.`}
+      >
+        <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
+          airwaylab.app
+        </span>
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
+            <PolarGrid stroke="hsl(217 33% 15% / 0.5)" />
+            <PolarAngleAxis
+              dataKey="component"
+              tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
+            />
+            <PolarRadiusAxis
+              angle={90}
+              domain={[0, 1]}
+              tick={false}
+              axisLine={false}
+            />
+            {/* Reference "normal" range — subtle green fill behind data */}
+            <Radar
+              name="Normal Range"
+              dataKey="ref"
+              stroke={withAlpha(CHART_COLORS[1], 0.3)}
+              fill={CHART_COLORS[1]}
+              fillOpacity={0.05}
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+            {/* Actual data */}
+            <Radar
+              name="Score"
+              dataKey="value"
+              stroke={CHART_COLORS[0]}
+              fill={CHART_COLORS[0]}
+              fillOpacity={0.2}
+              strokeWidth={2}
+            />
+            <Tooltip
+              contentStyle={TOOLTIP_STYLE}
+              formatter={(value, name) => {
+                if (name === 'Normal Range') return [Number(value).toFixed(2), 'Normal Limit'];
+                return [Number(value).toFixed(2), 'Score'];
+              }}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-4 rounded-sm bg-blue-500/30" />
+          Patient Score
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-4 rounded-sm border border-dashed border-emerald-500/40 bg-emerald-500/10" />
+          Normal Range
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">
-          Glasgow Index Components{' '}
-          <span className="font-mono tabular-nums text-muted-foreground">
-            (Overall: {glasgow.overall.toFixed(2)})
-          </span>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">
+            {title}{' '}
+            <span className="font-mono tabular-nums text-muted-foreground">
+              (Overall: {glasgow.overall.toFixed(2)})
+            </span>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsExpanded(true)}
+            aria-label="Expand chart to full screen"
+            className="text-muted-foreground"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div
-          className="relative h-[300px] w-full sm:h-[380px]"
-          role="img"
-          aria-label={`Glasgow Index radar chart. Overall score: ${glasgow.overall.toFixed(2)} out of 9. Shows 9 component scores: ${data.map((d) => `${d.component}: ${d.value.toFixed(2)}`).join(', ')}.`}
-        >
-          <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
-            airwaylab.app
-          </span>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
-              <PolarGrid stroke="hsl(217 33% 15% / 0.5)" />
-              <PolarAngleAxis
-                dataKey="component"
-                tick={{ fill: 'hsl(215 20% 55%)', fontSize: 10 }}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 1]}
-                tick={false}
-                axisLine={false}
-              />
-              {/* Reference "normal" range — subtle green fill behind data */}
-              <Radar
-                name="Normal Range"
-                dataKey="ref"
-                stroke={withAlpha(CHART_COLORS[1], 0.3)}
-                fill={CHART_COLORS[1]}
-                fillOpacity={0.05}
-                strokeWidth={1}
-                strokeDasharray="4 4"
-              />
-              {/* Actual data */}
-              <Radar
-                name="Score"
-                dataKey="value"
-                stroke={CHART_COLORS[0]}
-                fill={CHART_COLORS[0]}
-                fillOpacity={0.2}
-                strokeWidth={2}
-              />
-              <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value, name) => {
-                  if (name === 'Normal Range') return [Number(value).toFixed(2), 'Normal Limit'];
-                  return [Number(value).toFixed(2), 'Score'];
-                }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-4 rounded-sm bg-blue-500/30" />
-            Patient Score
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-4 rounded-sm border border-dashed border-emerald-500/40 bg-emerald-500/10" />
-            Normal Range
-          </div>
-        </div>
+        {renderChart('h-[300px] sm:h-[380px]')}
       </CardContent>
+      {isExpanded && (
+        <FullscreenChartModal title={title} onClose={() => setIsExpanded(false)}>
+          {renderChart('h-full min-h-[70vh]')}
+        </FullscreenChartModal>
+      )}
     </Card>
   );
 });

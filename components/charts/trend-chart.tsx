@@ -12,7 +12,10 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
+import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FullscreenChartModal } from '@/components/charts/fullscreen-chart-modal';
 import type { NightResult } from '@/lib/types';
 import { sanitizeNumber } from '@/lib/chart-downsample';
 import { findSettingsChangeBoundaries } from '@/lib/comparison-guard';
@@ -38,6 +41,7 @@ export const TrendChart = memo(function TrendChart({ nights, therapyChangeDate }
     nedMean: true,
     reraIndex: true,
   });
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const data = useMemo(() => [...nights]
     .reverse()
@@ -72,38 +76,10 @@ export const TrendChart = memo(function TrendChart({ nights, therapyChangeDate }
     setVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-sm font-medium">{nights.length > 1 ? 'Multi-Night Trends' : 'Night Metrics'}</CardTitle>
-          <div className="flex flex-wrap gap-1.5">
-            {METRICS.map((m) => (
-              <button
-                key={m.key}
-                onClick={() => toggleMetric(m.key)}
-                aria-pressed={visible[m.key]}
-                aria-label={`${m.label}: ${visible[m.key] ? 'visible' : 'hidden'}`}
-                className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors ${
-                  visible[m.key]
-                    ? 'border-border bg-card text-foreground'
-                    : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
-                }`}
-              >
-                <div
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: visible[m.key] ? m.color : 'hsl(215 20% 30%)' }}
-                />
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          className="relative h-[300px] w-full sm:h-[380px]"
-          role="img"
+  const renderChart = (heightClass: string) => (
+    <div
+      className={`relative w-full ${heightClass}`}
+      role="img"
           aria-label={`Multi-night trend chart showing ${data.length} nights. Metrics displayed: ${METRICS.filter((m) => visible[m.key]).map((m) => m.label).join(', ')}.`}
         >
           <span className="pointer-events-none absolute bottom-1 right-2 z-10 select-none text-[9px] text-muted-foreground/70">
@@ -200,7 +176,56 @@ export const TrendChart = memo(function TrendChart({ nights, therapyChangeDate }
             </LineChart>
           </ResponsiveContainer>
         </div>
+  );
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-sm font-medium">{nights.length > 1 ? 'Multi-Night Trends' : 'Night Metrics'}</CardTitle>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {METRICS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => toggleMetric(m.key)}
+                aria-pressed={visible[m.key]}
+                aria-label={`${m.label}: ${visible[m.key] ? 'visible' : 'hidden'}`}
+                className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors ${
+                  visible[m.key]
+                    ? 'border-border bg-card text-foreground'
+                    : 'border-transparent bg-transparent text-muted-foreground/70 line-through'
+                }`}
+              >
+                <div
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: visible[m.key] ? m.color : 'hsl(215 20% 30%)' }}
+                />
+                {m.label}
+              </button>
+            ))}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsExpanded(true)}
+              aria-label="Expand chart to full screen"
+              className="text-muted-foreground"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {renderChart('h-[300px] sm:h-[380px]')}
       </CardContent>
+      {isExpanded && (
+        <FullscreenChartModal
+          title={nights.length > 1 ? 'Multi-Night Trends' : 'Night Metrics'}
+          onClose={() => setIsExpanded(false)}
+        >
+          {renderChart('h-full min-h-[70vh]')}
+        </FullscreenChartModal>
+      )}
     </Card>
   );
 });
