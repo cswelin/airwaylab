@@ -58,7 +58,7 @@ describe('Modal portal enforcement', () => {
   });
 
   for (const filePath of filesWithFixedOverlay) {
-    const relative = path.relative(root, filePath);
+    const relative = path.relative(root, filePath).split(path.sep).join('/');
 
     if (EXEMPT_FILES.has(relative)) continue;
 
