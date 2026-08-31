@@ -7,6 +7,7 @@ import {
   DASHBOARD_SUMMARY_STORE_NAME,
 } from '@/lib/idb-core';
 import { clearPersistedNights } from '@/lib/persistence';
+import { clearAllAIInsights } from '@/lib/ai-insights-persistence';
 
 /**
  * Wipe ALL browser-local AirwayLab data on this device: the localStorage
@@ -26,6 +27,7 @@ export async function clearAllLocalData(): Promise<void> {
   } catch {
     // Non-fatal — IndexedDB below holds the bulk of the space.
   }
+  clearAllAIInsights();
 
   // Clear every store in a single transaction (one DB, one connection).
   await runTx(
