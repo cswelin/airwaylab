@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth/auth-context';
 import { canAccess, getAIRemaining } from '@/lib/auth/feature-gate';
 import { fetchAIInsights, fetchDeepAIInsights } from '@/lib/ai-insights-client';
+import { loadAIInsights, saveAIInsights } from '@/lib/ai-insights-persistence';
 import { DEMO_AI_INSIGHTS } from '@/lib/demo-ai-insights';
 import { InsightsPanel } from '@/components/dashboard/insights-panel';
 import { DeepInsightTeasers } from '@/components/dashboard/deep-insight-teasers';
@@ -76,6 +77,22 @@ export function AIInsightsGate({
       insightsNightRef.current = 'demo';
     }
   }, [isDemo]);
+
+  // Load any previously-generated AI insights for this night from local cache,
+  // so a page reload shows the existing result instead of silently
+  // re-generating it (and, for community-tier users, spending another credit).
+  // Runs before the auto-run effect below — a cache hit sets insightsNightRef
+  // synchronously so that effect's guard correctly skips a redundant fetch.
+  useEffect(() => {
+    if (isDemo || isSharedView || !user) return;
+    if (insightsNightRef.current === selectedNight.dateStr) return;
+    const cached = loadAIInsights(selectedNight.dateStr);
+    if (!cached) return;
+    setAiInsights(cached.insights);
+    setIsDeepResult(cached.isDeep);
+    setServerRemainingCredits(cached.remainingCredits);
+    insightsNightRef.current = selectedNight.dateStr;
+  }, [selectedNight.dateStr, isDemo, isSharedView, user]);
 
   // Clear insights when night changes (but show re-generate option)
   const nightChanged = insightsNightRef.current !== null && insightsNightRef.current !== selectedNight.dateStr && insightsNightRef.current !== 'demo';
@@ -157,6 +174,11 @@ export function AIInsightsGate({
         setAiInsights(result.insights);
         setIsDeepResult(result.isDeep ?? false);
         insightsNightRef.current = selectedNight.dateStr;
+        saveAIInsights(selectedNight.dateStr, {
+          insights: result.insights,
+          isDeep: result.isDeep ?? false,
+          remainingCredits: result.remainingCredits,
+        });
         events.aiInsightsGenerated(tier, result.insights.length, isDeepAccess);
       })
       .catch((err: unknown) => {
